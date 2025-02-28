@@ -1,0 +1,13 @@
+{
+  "exports": {
+    ".": "./orderstamp.ts"
+  },
+  "name": "@goatdb/orderstamp",
+  "version": "1.0.0",
+  "description": "A module for creating and managing order stamps",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/goatplatform/orderstamp-js"
+  }
+}
