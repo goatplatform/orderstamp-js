@@ -101,6 +101,32 @@ Generates a new stamp lexicographically between two existing stamps.
 
 Creates an order stamp from a numeric value and an optional unique key.
 
+## String Growth Management
+
+One of the key advantages of Orderstamp is its ability to manage string growth
+effectively. When repeatedly inserting between two existing stamps, the
+generated stamps can grow in length. However, this growth is naturally limited
+by the use of `start()` and `end()` functions.
+
+Since `start()` and `end()` generate stamps based on the current timestamp
+rather than by splitting the space between existing stamps, they create
+fixed-length entries that "reset" the potential growth. In practice, this means:
+
+1. If you occasionally append items using `end()` or prepend items using
+   `start()`, you introduce new fixed-length reference points in your ordered
+   list.
+
+2. Subsequent `between()` operations will be able to use these timestamp-based
+   stamps as boundaries, preventing unbounded growth of stamp lengths.
+
+3. Even in systems with frequent insertions between existing items, the overall
+   stamp length remains manageable as long as new items are occasionally added
+   at the beginning or end of the list.
+
+This approach ensures that Orderstamp remains efficient for long-running
+applications with many insertions, without requiring periodic rebalancing or
+reorganization of the entire ordered collection.
+
 ## Dependencies
 
 Orderstamp has a single dependency:
