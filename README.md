@@ -2,9 +2,10 @@
 
 A lightweight, efficient TypeScript utility for maintaining large ordered lists
 in databases with minimal write operations. Originally developed for
-[GoatDB](https://github.com/goatdb/goatdb) - the high-performance distributed
-database - this algorithm is now available as a standalone package to help
-developers solve the common challenge of list ordering in database applications.
+[GoatDB](https://github.com/goatplatform/goatdb) - the high-performance
+distributed database - this algorithm is now available as a standalone package
+to help developers solve the common challenge of list ordering in database
+applications.
 
 ## The Problem
 
@@ -25,7 +26,7 @@ Orderstamp provides a string-based ordering solution that:
 - Never needs to reindex or update other records when changing one item's
   position
 - Works with any database that supports string sorting (including
-  [GoatDB](https://github.com/goatdb/goatdb) or your favourite SQL/NoSQL
+  [GoatDB](https://github.com/goatplatform/goatdb) or your favourite SQL/NoSQL
   database)
 
 ## How It Works
