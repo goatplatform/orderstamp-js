@@ -3,7 +3,8 @@
   "specifiers": {
     "jsr:@std/assert@*": "1.0.11",
     "jsr:@std/internal@^1.0.5": "1.0.5",
-    "npm:elen@*": "1.0.10"
+    "npm:elen@*": "1.0.10",
+    "npm:elen@^1.0.10": "1.0.10"
   },
   "jsr": {
     "@std/assert@1.0.11": {

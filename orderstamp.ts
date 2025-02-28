@@ -72,7 +72,7 @@
  * when sorted lexicographically, a capability efficiently supported by most
  * databases and programming languages.
  */
-import * as ELEN from "npm:elen";
+import * as ELEN from "npm:elen@^1.0.10";
 
 /**
  * The minimum character code used in order stamps.
@@ -141,7 +141,7 @@ export function start(): string {
  *              otherwise a random suffix will be generated automatically.
  * @returns A string order stamp that preserves ordering
  */
-export function from(value: number, key?: string) {
+export function from(value: number, key?: string): string {
   if (key === undefined) {
     key = "";
     for (let j = 0; j < RANDOM_SUFFIX_LEN; ++j) {
