@@ -59,12 +59,12 @@
  * 2. **Between Operation**:
  *    - Find the common prefix between two existing stamps
  *    - Generate a character that falls lexicographically between the first
- *        differing characters
+ *      differing characters
  *    - Add a random suffix to ensure uniqueness
  *
  * 3. **Numeric Conversion**:
  *    - Timestamps and indices are encoded using ELEN (Efficient Lexicographical
- *      Encoding of Numbers by Peter Seymour)
+ *      Encoding of Numbers) by Peter Seymour
  *    - Random suffixes prevent collisions when multiple stamps are created
  *      concurrently
  *
@@ -107,21 +107,26 @@ export const CHAR_CODE_MAX = 254;
 const RANDOM_SUFFIX_LEN = 16;
 
 /**
- * Returns a fixed order stamp at the end of the list which can be used to
- * append to the end of the list.
+ * Returns a monotonically increasing order stamp at the end of the list which
+ * can be used to append items at the end.
  *
  * This function uses the current timestamp to ensure that new insertions at
  * the end of the list naturally increase their position over time. This
  * approach maintains chronological ordering where newer items appear at the
- * end of the list.
+ * end of the list. Each call to this function will return a stamp greater than
+ * any previous call, ensuring strict ordering.
  */
 export function end(): string {
   return from(performance.now());
 }
 
 /**
- * Returns a fixed order stamp in the start of the list which can be used to
- * insert at the start of the list.
+ * Returns a monotonically decreasing order stamp at the start of the list which
+ * can be used to insert items at the beginning.
+ *
+ * This function uses the negative of the current timestamp to ensure that
+ * new insertions at the start of the list will be ordered before existing items,
+ * while maintaining a consistent approach with the end() function.
  */
 export function start(): string {
   return from(-performance.now());
@@ -153,14 +158,15 @@ export function from(value: number, key?: string): string {
 
 /**
  * Given two order stamps, this function generates and returns a value between
- * them. To generate values at the edge of the list use the {@link start} and
+ * them. To generate values at the edges of the list, use the {@link start} and
  * {@link end} functions.
  *
  * This function ensures the returned value will sort lexicographically between
  * the two provided stamps, regardless of their original order. It adds random
  * characters to minimize collision probability in high-frequency operations.
  *
- * Note: You can pass the values in any order you like.
+ * Note: You can pass the values in any order; the function will automatically
+ * determine which one should be considered the "previous" and which the "next".
  *
  * @param prev - The first order stamp
  * @param next - The second order stamp
@@ -188,12 +194,8 @@ export function between(prev: string, next: string): string {
 
   // First char after shared prefix is guaranteed to be smaller in prev than
   // in next. Note that it may not actually exist (if prev is shorter than next)
-  const minChar = prefixLen < prev.length
-    ? prev.charCodeAt(prefixLen)
-    : prev.charCodeAt(0);
-  const maxChar = prefixLen > 0
-    ? next.charCodeAt(prefixLen)
-    : next.charCodeAt(0);
+  const minChar = prev.charCodeAt(prefixLen);
+  const maxChar = next.charCodeAt(prefixLen);
   // Append a random char between prev[prefixLen] and next[prefixLen]. This
   // will place our result before next but also before prev.
   result += String.fromCharCode(randomInt(minChar, maxChar));
@@ -224,9 +226,9 @@ export function between(prev: string, next: string): string {
   // 1. Guarantee that `result` comes after `prev` (`result.length` >
   //    `prev.length`).
   //
-  // 2. Guarantee that no two caller pick the same value even if they try to
+  // 2. Guarantee that no two callers pick the same value even if they try to
   //    generate a stamp between the same values. This creates a (random) total
-  //    order on the results of all parties with a very high probabili2ty.
+  //    order on the results of all parties with a very high probability.
   for (let j = 0; j < RANDOM_SUFFIX_LEN; ++j) {
     result += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
   }
@@ -251,8 +253,15 @@ export function commonPrefixLen(str1: string, str2: string): number {
   return end;
 }
 
-// min - inclusive, max - exclusive
-// See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random#Getting_a_random_integer_between_two_values
+/**
+ * Generates a random integer between min (inclusive) and max (exclusive).
+ *
+ * @param min - The minimum value (inclusive)
+ * @param max - The maximum value (exclusive)
+ * @returns A random integer in the specified range
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random#Getting_a_random_integer_between_two_values
+ */
 export function randomInt(min: number, max: number): number {
   if (min === max) {
     return min;
