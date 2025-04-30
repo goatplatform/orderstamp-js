@@ -257,9 +257,151 @@ Deno.test("start() generates monotonically decreasing stamps", () => {
   assertNotEquals(stamp1, stamp3);
 });
 
+Deno.test("Reorder a lot", () => {
+  const stamp1 = orderstamp.from(100);
+  let stamp2 = orderstamp.from(200);
+
+  for (let i = 0; i < 1000; i++) {
+    const ns = orderstamp.between(stamp1, stamp2);
+    assertTrue(
+      stamp1 < ns,
+      `Failing stamp1 < ns at iteration ${i} with ${stamp1} vs. ${ns}`,
+    );
+    assertTrue(
+      ns < stamp2,
+      `Failing ns < stamp2 at iteration ${i} with ${ns} vs. ${stamp2}`,
+    );
+    stamp2 = ns;
+  }
+});
+
+Deno.test("Stress test: Sequential insertions", () => {
+  const stamps: string[] = [];
+
+  // First create a sequence of 1000 stamps using end()
+  for (let i = 0; i < 1000; i++) {
+    stamps.push(orderstamp.end());
+    // Small delay to ensure different timestamps
+    shortSleep();
+  }
+
+  // Verify all stamps are in order
+  for (let i = 1; i < stamps.length; i++) {
+    assertTrue(stamps[i - 1] < stamps[i], `Stamps out of order at index ${i}`);
+  }
+});
+
+Deno.test("Stress test: Parallel insertion ranges", () => {
+  // Create 10 initial points using end()
+  const points: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    points.push(orderstamp.end());
+    // Small delay to ensure different timestamps
+    shortSleep();
+  }
+
+  // Insert 100 items between each pair of points
+  const allStamps: string[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const prev = points[i];
+    const next = points[i + 1];
+    for (let j = 0; j < 100; j++) {
+      const newStamp = orderstamp.between(prev, next);
+      allStamps.push(newStamp);
+      // Verify each new stamp is in correct range
+      assertTrue(prev < newStamp, "New stamp should be after prev");
+      assertTrue(newStamp < next, "New stamp should be before next");
+    }
+  }
+
+  // Sort all stamps to ensure they're in order
+  allStamps.sort();
+
+  // Verify all stamps are in order
+  for (let i = 1; i < allStamps.length; i++) {
+    assertTrue(
+      allStamps[i - 1] < allStamps[i],
+      `Stamps out of order at index ${i}`,
+    );
+  }
+});
+
+Deno.test("Stress test: Alternating operations", () => {
+  const stamps: string[] = [];
+  const iterations = 100;
+
+  // Start with a timestamp-based stamp
+  stamps.push(orderstamp.end());
+  shortSleep();
+
+  for (let i = 0; i < iterations; i++) {
+    if (i % 2 === 0) {
+      // Insert at beginning using start()
+      const newStamp = orderstamp.start();
+      shortSleep();
+      stamps.unshift(newStamp);
+    } else {
+      // Insert at end using end()
+      const newStamp = orderstamp.end();
+      shortSleep();
+      stamps.push(newStamp);
+    }
+  }
+
+  // Verify all stamps are in order
+  for (let i = 1; i < stamps.length; i++) {
+    assertTrue(stamps[i - 1] < stamps[i], `Stamps out of order at index ${i}`);
+  }
+});
+
+Deno.test("Stress test: Mixed operations", () => {
+  const stamps: string[] = [];
+  const iterations = 100;
+
+  // Start with a timestamp-based stamp
+  stamps.push(orderstamp.end());
+  shortSleep();
+
+  for (let i = 0; i < iterations; i++) {
+    switch (i % 3) {
+      case 0: {
+        // Insert at beginning using start()
+        const newStamp = orderstamp.start();
+        shortSleep();
+        stamps.unshift(newStamp);
+        break;
+      }
+      case 1: {
+        // Insert at end using end()
+        const newStamp = orderstamp.end();
+        shortSleep();
+        stamps.push(newStamp);
+        break;
+      }
+      case 2: {
+        // Insert between two existing stamps
+        if (stamps.length >= 2) {
+          const midIndex = Math.floor(stamps.length / 2);
+          const newStamp = orderstamp.between(
+            stamps[midIndex - 1],
+            stamps[midIndex],
+          );
+          stamps.splice(midIndex, 0, newStamp);
+        }
+        break;
+      }
+    }
+  }
+
+  // Verify all stamps are in order
+  for (let i = 1; i < stamps.length; i++) {
+    assertTrue(stamps[i - 1] < stamps[i], `Stamps out of order at index ${i}`);
+  }
+});
+
 // Helper function for tests
-function assertTrue(condition: boolean) {
-  assertEquals(condition, true);
+function assertTrue(condition: boolean, message?: string) {
+  assertEquals(condition, true, message);
 }
 
 function assertNotEquals(actual: unknown, expected: unknown) {

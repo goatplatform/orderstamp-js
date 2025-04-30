@@ -187,50 +187,31 @@ export function between(prev: string, next: string): string {
     next = prev;
     prev = tmp;
   }
-
-  // prev has length <= next, and shares a common prefix with next
+  // Find the common prefix between the two stamps
   const prefixLen = commonPrefixLen(prev, next);
+  // Start with the common prefix
   let result = prev.substring(0, prefixLen);
+  // Track how many random characters we've added
+  let suffixLen = 0;
+  // Track our position in the strings
+  let j = 0;
 
-  // First char after shared prefix is guaranteed to be smaller in prev than
-  // in next. Note that it may not actually exist (if prev is shorter than next)
-  const minChar = prev.charCodeAt(prefixLen);
-  const maxChar = next.charCodeAt(prefixLen);
-  // Append a random char between prev[prefixLen] and next[prefixLen]. This
-  // will place our result before next but also before prev.
-  result += String.fromCharCode(randomInt(minChar, maxChar));
+  // Keep adding characters until we have enough random ones
+  while (suffixLen < RANDOM_SUFFIX_LEN) {
+    // Get the character codes at the current position, defaulting to min/max
+    // if we've reached the end
+    const prevCode = prev.charCodeAt(prefixLen + j) || CHAR_CODE_MIN;
+    const nextCode = next.charCodeAt(prefixLen + j) || CHAR_CODE_MAX;
+    ++j;
 
-  // Search prev from prefixLen+1 to its end
-  for (let i = prefixLen + 1; i < prev.length; ++i) {
-    const charCode = prev.charCodeAt(i);
-    // If we found a char less than MAX, generate a char greater than that
-    // which will place our result *after* next.
-    if (charCode < CHAR_CODE_MAX) {
-      result += String.fromCharCode(randomInt(charCode + 1, CHAR_CODE_MAX));
-      break;
+    // If there's room between the characters, add a random one
+    if (prevCode < nextCode) {
+      result += String.fromCharCode(randomInt(prevCode, nextCode));
+      ++suffixLen;
     } else {
-      // If we found the MAX char, copy it and try again on the following char.
-      result += String.fromCharCode(charCode);
+      // Otherwise just copy the character from prev
+      result += String.fromCharCode(prevCode);
     }
-  }
-
-  // At this point we can guarantee that:
-  //
-  // - Our result comes before next
-  //
-  // - If prev was long enough and not filled with MAX chars, then our result
-  //   also comes after prev
-  //
-  // In any case, we append a random sequence for two reasons:
-  //
-  // 1. Guarantee that `result` comes after `prev` (`result.length` >
-  //    `prev.length`).
-  //
-  // 2. Guarantee that no two callers pick the same value even if they try to
-  //    generate a stamp between the same values. This creates a (random) total
-  //    order on the results of all parties with a very high probability.
-  for (let j = 0; j < RANDOM_SUFFIX_LEN; ++j) {
-    result += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
   }
   return result;
 }
