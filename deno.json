@@ -3,7 +3,7 @@
     ".": "./orderstamp.ts"
   },
   "name": "@goatdb/orderstamp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A module for creating and managing order stamps",
   "license": "MIT",
   "repository": {
