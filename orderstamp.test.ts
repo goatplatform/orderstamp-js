@@ -399,6 +399,78 @@ Deno.test("Stress test: Mixed operations", () => {
   }
 });
 
+Deno.test("between() with different collision probabilities", () => {
+  const stamp1 = orderstamp.from(100);
+  const stamp2 = orderstamp.from(200);
+
+  // Test with different collision probabilities
+  const probabilities = [-32, -48, -64, -80, -96, -112, -128];
+  const results = new Map<number, string[]>();
+
+  // Generate multiple stamps for each probability
+  for (const prob of probabilities) {
+    const stamps: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const between = orderstamp.between(stamp1, stamp2, prob);
+      stamps.push(between);
+      // Verify the stamp is between the two values
+      assertTrue(
+        stamp1 < between,
+        `Stamp should be greater than stamp1 for probability 2^${prob}`,
+      );
+      assertTrue(
+        between < stamp2,
+        `Stamp should be less than stamp2 for probability 2^${prob}`,
+      );
+    }
+    results.set(prob, stamps);
+  }
+});
+
+Deno.test("from() with different collision probabilities", () => {
+  const probabilities = [-32, -48, -64, -80, -96, -112, -128];
+  const results = new Map<number, string[]>();
+
+  // Generate multiple stamps for each probability
+  for (const prob of probabilities) {
+    const stamps: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const stamp = orderstamp.from(100, undefined, prob);
+      stamps.push(stamp);
+    }
+    results.set(prob, stamps);
+  }
+
+  // Verify that stamps with the same probability are different
+  for (const [prob, stamps] of results) {
+    const uniqueStamps = new Set(stamps);
+    assertEquals(
+      uniqueStamps.size,
+      stamps.length,
+      `Expected all stamps to be unique for probability 2^${prob}`,
+    );
+  }
+
+  // Verify that stamps with different probabilities maintain ordering
+  const allStamps = Array.from(results.values()).flat();
+  allStamps.sort();
+  for (let i = 1; i < allStamps.length; i++) {
+    assertTrue(
+      allStamps[i - 1] < allStamps[i],
+      `Stamps should maintain ordering regardless of collision probability`,
+    );
+  }
+});
+
+Deno.test("from() with custom key and collision probability", () => {
+  const stamp1 = orderstamp.from(100, "abc", -32);
+  const stamp2 = orderstamp.from(200, "xyz", -64);
+
+  assertTrue(stamp1 < stamp2);
+  assertEquals(stamp1.endsWith("abc"), true);
+  assertEquals(stamp2.endsWith("xyz"), true);
+});
+
 // Helper function for tests
 function assertTrue(condition: boolean, message?: string) {
   assertEquals(condition, true, message);

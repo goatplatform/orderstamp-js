@@ -97,6 +97,14 @@ end of a list - just call `end()` each time you need a new position.
 
 Generates a new stamp lexicographically between two existing stamps.
 
+### `between(prev: string, next: string, collisionProbability?: number): string`
+
+Generates a new stamp lexicographically between two existing stamps. The
+`collisionProbability` parameter controls the probability of stamp collisions as
+a power of 2. For example, -64 means a probability of 2^-64. Defaults to -64 for
+practical collision resistance in database operations. You can adjust this value
+to trade off between stamp length and collision probability.
+
 ### `from(value: number, key?: string): string`
 
 Creates an order stamp from a numeric value and an optional unique key.
@@ -126,6 +134,26 @@ fixed-length entries that "reset" the potential growth. In practice, this means:
 This approach ensures that Orderstamp remains efficient for long-running
 applications with many insertions, without requiring periodic rebalancing or
 reorganization of the entire ordered collection.
+
+## Stamp Length vs Collision Probability
+
+The following table shows how the collision probability affects the length of
+generated order stamps:
+
+| Collision Probability | Stamp Length | Description                             |
+| --------------------- | ------------ | --------------------------------------- |
+| 2^-32                 | 20 chars     | Higher collision chance, shorter stamps |
+| 2^-48                 | 26 chars     | Moderate collision chance               |
+| 2^-64                 | 28 chars     | Default setting - good balance          |
+| 2^-80                 | 30 chars     | Lower collision chance                  |
+| 2^-96                 | 32 chars     | Very low collision chance               |
+| 2^-112                | 34 chars     | Extremely low collision chance          |
+| 2^-128                | 36 chars     | Practically impossible collision chance |
+
+The default collision probability of 2^-64 provides a good balance between stamp
+length (28 characters) and collision resistance. You can adjust this value to
+trade off between stamp length and collision probability based on your specific
+needs.
 
 ## Dependencies
 

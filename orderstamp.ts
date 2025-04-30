@@ -144,13 +144,24 @@ export function start(): string {
  * @param key - Optional unique identifier to append to the encoded value.
  *              Provide this if the item already has a random unique ID to use,
  *              otherwise a random suffix will be generated automatically.
+ * @param collisionProbability - The desired collision probability as a power of
+ *                              2. For example, 64 means a probability of 2^64.
+ *                              Defaults to 64 for practical collision
+ *                              resistance in database operations.
  * @returns A string order stamp that preserves ordering
  */
-export function from(value: number, key?: string): string {
+export function from(
+  value: number,
+  key?: string,
+  collisionProbability: number = 64,
+): string {
   if (key === undefined) {
     key = "";
-    for (let j = 0; j < RANDOM_SUFFIX_LEN; ++j) {
+    const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
+    let logCollisionProbability = 0;
+    while (logCollisionProbability > targetLogProbability) {
       key += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
+      logCollisionProbability += Math.log(1 / (CHAR_CODE_MAX - CHAR_CODE_MIN));
     }
   }
   return ELEN.encode(value) + key;
@@ -170,11 +181,19 @@ export function from(value: number, key?: string): string {
  *
  * @param prev - The first order stamp
  * @param next - The second order stamp
+ * @param collisionProbability - The desired collision probability as a power of
+ *                              2. For example, 64 means a probability of 2^64.
+ *                              Defaults to 64 for practical collision
+ *                              resistance in database operations.
  * @returns A new order stamp that sorts between the two input stamps
  * @throws Error if prev and next are identical (impossible to generate between
  *         identical values)
  */
-export function between(prev: string, next: string): string {
+export function between(
+  prev: string,
+  next: string,
+  collisionProbability: number = 64,
+): string {
   // Sanity check. If prev and next are equal, there's no way to generate a
   // value between them.
   if (prev === next) {
@@ -191,13 +210,14 @@ export function between(prev: string, next: string): string {
   const prefixLen = commonPrefixLen(prev, next);
   // Start with the common prefix
   let result = prev.substring(0, prefixLen);
-  // Track how many random characters we've added
-  let suffixLen = 0;
   // Track our position in the strings
   let j = 0;
+  // Track log of collision probability (start at 0 = log(1))
+  let logCollisionProbability = 0;
+  const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
 
-  // Keep adding characters until we have enough random ones
-  while (suffixLen < RANDOM_SUFFIX_LEN) {
+  // Keep adding characters until we achieve the desired collision probability
+  while (logCollisionProbability > targetLogProbability) {
     // Get the character codes at the current position, defaulting to min/max
     // if we've reached the end
     const prevCode = prev.charCodeAt(prefixLen + j) || CHAR_CODE_MIN;
@@ -207,7 +227,8 @@ export function between(prev: string, next: string): string {
     // If there's room between the characters, add a random one
     if (prevCode < nextCode) {
       result += String.fromCharCode(randomInt(prevCode, nextCode));
-      ++suffixLen;
+      // Update log collision probability: add log(1/(number of possible values))
+      logCollisionProbability += Math.log(1 / (nextCode - prevCode));
     } else {
       // Otherwise just copy the character from prev
       result += String.fromCharCode(prevCode);
