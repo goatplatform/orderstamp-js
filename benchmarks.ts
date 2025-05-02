@@ -36,6 +36,13 @@ function analyzeStamps(stamps: string[], name: string): void {
   const maxLength = Math.max(...lengths);
   const minLength = Math.min(...lengths);
 
+  // Calculate percentiles
+  const sortedLengths = [...lengths].sort((a, b) => a - b);
+  const p50 = sortedLengths[Math.floor(sortedLengths.length * 0.5)];
+  const p90 = sortedLengths[Math.floor(sortedLengths.length * 0.9)];
+  const p95 = sortedLengths[Math.floor(sortedLengths.length * 0.95)];
+  const p99 = sortedLengths[Math.floor(sortedLengths.length * 0.99)];
+
   const distribution = lengths.reduce((acc, len) => {
     acc[len] = (acc[len] || 0) + 1;
     return acc;
@@ -43,6 +50,10 @@ function analyzeStamps(stamps: string[], name: string): void {
 
   console.log(`\n${name} Analysis:`);
   console.log(`  Average length: ${avgLength.toFixed(2)}`);
+  console.log(`  Median length (p50): ${p50}`);
+  console.log(`  p90 length: ${p90}`);
+  console.log(`  p95 length: ${p95}`);
+  console.log(`  p99 length: ${p99}`);
   console.log(`  Min length: ${minLength}`);
   console.log(`  Max length: ${maxLength}`);
   console.log(`  Length distribution: ${formatDistribution(distribution)}`);
@@ -78,15 +89,54 @@ for (let i = 0; i < 1000; i++) {
 }
 analyzeStamps(basicStamps, "Basic Generation");
 
-// Sequential insertions
+// Sequential insertions with growth management
 const sequentialStamps = [];
-let current = start();
+let currentBoundary = start();
+let nextBoundary = end();
+let insertionsSinceReset = 0;
+const RESET_THRESHOLD = 100; // Reset boundaries every 100 insertions
+
 for (let i = 0; i < 1000; i++) {
-  const next = end();
-  current = between(current, next);
-  sequentialStamps.push(current);
+  if (insertionsSinceReset >= RESET_THRESHOLD) {
+    // Reset boundaries to manage growth
+    currentBoundary = start();
+    nextBoundary = end();
+    insertionsSinceReset = 0;
+  }
+
+  currentBoundary = between(currentBoundary, nextBoundary);
+  sequentialStamps.push(currentBoundary);
+  insertionsSinceReset++;
 }
-analyzeStamps(sequentialStamps, "Sequential Insertions");
+analyzeStamps(sequentialStamps, "Sequential Insertions with Growth Management");
+
+// Realistic sequential insertions with mixed operations
+const realisticStamps = [];
+let realisticCurrent = start();
+let realisticNext = end();
+let realisticInsertions = 0;
+const REALISTIC_RESET_THRESHOLD = 100; // Reset boundaries every 100 insertions
+const MIXED_OPERATIONS_PROBABILITY = 0.2; // 20% chance of using start/end
+
+for (let i = 0; i < 1000; i++) {
+  if (
+    realisticInsertions >= REALISTIC_RESET_THRESHOLD ||
+    Math.random() < MIXED_OPERATIONS_PROBABILITY
+  ) {
+    // Occasionally reset boundaries or use start/end to better reflect real-world usage
+    if (Math.random() < 0.5) {
+      realisticCurrent = start();
+    } else {
+      realisticNext = end();
+    }
+    realisticInsertions = 0;
+  }
+
+  realisticCurrent = between(realisticCurrent, realisticNext);
+  realisticStamps.push(realisticCurrent);
+  realisticInsertions++;
+}
+analyzeStamps(realisticStamps, "Realistic Sequential Insertions");
 
 // Parallel insertions
 const parallelStamps = [];
