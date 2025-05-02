@@ -234,6 +234,18 @@ export function between(
       i++;
     }
   }
+  // Ensure strict ordering for bulk allocation ---
+  if (count > 1) {
+    // Encode the index as a character (or more if needed)
+    let idx = index;
+    let extra = "";
+    const base = CHAR_CODE_MAX - CHAR_CODE_MIN + 1;
+    do {
+      extra = String.fromCharCode(CHAR_CODE_MIN + (idx % base)) + extra;
+      idx = Math.floor(idx / base);
+    } while (idx > 0);
+    result += extra;
+  }
   // Add random characters to meet collision probability
   const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
   let logCollisionProbability = 0;
