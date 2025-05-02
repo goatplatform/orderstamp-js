@@ -485,9 +485,9 @@ function assertNotEquals(actual: unknown, expected: unknown) {
 }
 
 function shortSleep() {
-  const prev = performance.now();
+  const prev = Date.now();
   while (true) {
-    if (performance.now() !== prev) {
+    if (Date.now() !== prev) {
       return;
     }
   }

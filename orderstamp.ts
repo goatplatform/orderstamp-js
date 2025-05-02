@@ -117,7 +117,7 @@ const RANDOM_SUFFIX_LEN = 16;
  * any previous call, ensuring strict ordering.
  */
 export function end(): string {
-  return from(performance.now());
+  return from(Date.now());
 }
 
 /**
@@ -129,7 +129,7 @@ export function end(): string {
  * while maintaining a consistent approach with the end() function.
  */
 export function start(): string {
-  return from(-performance.now());
+  return from(-Date.now());
 }
 
 /**
