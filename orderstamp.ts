@@ -179,82 +179,68 @@ export function from(
  *
  * @param prev - The first order stamp
  * @param next - The second order stamp
+ * @param count - The number of evenly spaced stamps between prev and next
+ * @param index - The index of the stamp to generate between prev and next
  * @param collisionProbability - The desired collision probability as a power of
  *                              2. For example, 64 means a probability of 2^64.
  *                              Defaults to 64 for practical collision
  *                              resistance in database operations.
  * @returns A new order stamp that sorts between the two input stamps
  * @throws Error if prev and next are identical (impossible to generate between
- *         identical values)
+ *         identical values) or if count or index are out of range
  */
 export function between(
   prev: string,
   next: string,
+  count: number = 1,
+  index: number = 1,
   collisionProbability: number = 64,
 ): string {
-  // Sanity check. If prev and next are equal, there's no way to generate a
-  // value between them.
   if (prev === next) {
     throw new Error("prev and next must be different");
   }
-
-  // Make sure values are in the correct order
+  if (count < 1 || index < 1 || index > count) {
+    throw new Error("count must be >= 1 and 1 <= index <= count");
+  }
   if (prev > next) {
     const tmp = next;
     next = prev;
     prev = tmp;
   }
-
-  // Find the common prefix between the two stamps
   const prefixLen = commonPrefixLen(prev, next);
-
-  // Start with the common prefix
   let result = prev.substring(0, prefixLen);
-
-  // Get the first differing characters
-  const prevCode = prev.charCodeAt(prefixLen) || CHAR_CODE_MIN;
-  const nextCode = next.charCodeAt(prefixLen) || CHAR_CODE_MAX;
-
-  // Calculate target collision probability
-  const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
-
-  // If there's room between the characters
-  if (prevCode < nextCode - 1) {
-    // Calculate the middle character code
-    const midCode = prevCode + Math.ceil((nextCode - prevCode) / 2);
-    result += String.fromCharCode(midCode);
-
-    // Calculate remaining entropy needed
-    const initialEntropy = Math.log(1 / (nextCode - prevCode));
-    const remainingEntropy = targetLogProbability - initialEntropy;
-    const charsNeeded = Math.ceil(
-      remainingEntropy / Math.log(1 / (CHAR_CODE_MAX - CHAR_CODE_MIN)),
-    );
-
-    // Add random characters to meet collision probability
-    for (let i = 0; i < Math.max(0, charsNeeded); i++) {
-      result += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
-    }
-  } else {
-    // If there's no room between characters, copy from prev and add random suffix
-    result += String.fromCharCode(prevCode);
-    let j = prefixLen + 1;
-    let logCollisionProbability = 0;
-
-    while (logCollisionProbability > targetLogProbability) {
-      const prevCode = prev.charCodeAt(j) || CHAR_CODE_MIN;
-      const nextCode = next.charCodeAt(j) || CHAR_CODE_MAX;
-      ++j;
-
-      if (prevCode < nextCode) {
-        result += String.fromCharCode(randomInt(prevCode, nextCode));
-        logCollisionProbability += Math.log(1 / (nextCode - prevCode));
-      } else {
-        result += String.fromCharCode(prevCode);
-      }
+  let i = prefixLen;
+  let slots = count + 1;
+  let slot = index;
+  while (true) {
+    const prevCode = prev.charCodeAt(i) || CHAR_CODE_MIN;
+    const nextCode = next.charCodeAt(i) || CHAR_CODE_MAX;
+    const range = nextCode - prevCode;
+    if (range > slots) {
+      // There is enough room to split at this position
+      const step = range / slots;
+      const code = Math.floor(prevCode + step * slot);
+      result += String.fromCharCode(code);
+      break;
+    } else if (range > 1) {
+      // Not enough room for all slots, but at least one possible strictly between
+      // For count=1, index=1, this is the original behavior
+      const code = prevCode + 1;
+      result += String.fromCharCode(code);
+      break;
+    } else {
+      // No room, copy prevCode and continue to next character
+      result += String.fromCharCode(prevCode);
+      i++;
     }
   }
-
+  // Add random characters to meet collision probability
+  const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
+  let logCollisionProbability = 0;
+  while (logCollisionProbability > targetLogProbability) {
+    result += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
+    logCollisionProbability += Math.log(1 / (CHAR_CODE_MAX - CHAR_CODE_MIN));
+  }
   return result;
 }
 
