@@ -59,58 +59,34 @@ function analyzeStamps(stamps: string[], name: string): void {
   console.log(`  Length distribution: ${formatDistribution(distribution)}`);
 }
 
-console.log("=== OrderStamp Performance Benchmarks ===\n");
+console.log("=== OrderStamp Best Practice Benchmarks ===\n");
 
-// Basic operations
+// Core operations (including between for close values)
 runBenchmark("start()", () => start());
 runBenchmark("end()", () => end());
 runBenchmark("from()", () => from(performance.now()));
-
-// Between operations
-runBenchmark("between() - close values", () => {
+runBenchmark("between() (close values)", () => {
   const a = from(1);
   const b = from(2);
   between(a, b);
 });
 
-runBenchmark("between() - far values", () => {
-  const a = from(1);
-  const b = from(1000000);
-  between(a, b);
-});
+// Bulk Allocation (Best Practice)
+console.log("\n=== Bulk Allocation (Best Practice) ===");
 
-// Stamp length analysis
-console.log("\n=== Stamp Length Analysis ===");
+const BULK_N = 100;
+const bulkPrev = from(1000);
+const bulkNext = from(2000);
 
-// Basic stamp generation
-const basicStamps = [];
-for (let i = 0; i < 1000; i++) {
-  basicStamps.push(from(performance.now()));
+let bulkStamps = [];
+for (let i = 0; i < BULK_N; i++) {
+  bulkStamps.push(between(bulkPrev, bulkNext, BULK_N, i, 64));
 }
-analyzeStamps(basicStamps, "Basic Generation");
+analyzeStamps(bulkStamps, `Bulk Allocation between() (${BULK_N} insertions)`);
 
-// Sequential insertions with growth management
-const sequentialStamps = [];
-let currentBoundary = start();
-let nextBoundary = end();
-let insertionsSinceReset = 0;
-const RESET_THRESHOLD = 100; // Reset boundaries every 100 insertions
+// Realistic sequential insertions with occasional resets (Best Practice)
+console.log("\n=== Realistic Sequential Insertions with Occasional Resets ===");
 
-for (let i = 0; i < 1000; i++) {
-  if (insertionsSinceReset >= RESET_THRESHOLD) {
-    // Reset boundaries to manage growth
-    currentBoundary = start();
-    nextBoundary = end();
-    insertionsSinceReset = 0;
-  }
-
-  currentBoundary = between(currentBoundary, nextBoundary);
-  sequentialStamps.push(currentBoundary);
-  insertionsSinceReset++;
-}
-analyzeStamps(sequentialStamps, "Sequential Insertions with Growth Management");
-
-// Realistic sequential insertions with mixed operations
 const realisticStamps = [];
 let realisticCurrent = start();
 let realisticNext = end();
@@ -138,37 +114,20 @@ for (let i = 0; i < 1000; i++) {
 }
 analyzeStamps(realisticStamps, "Realistic Sequential Insertions");
 
-// Parallel insertions
-const parallelStamps = [];
-const points = [];
-for (let i = 0; i < 10; i++) {
-  points.push(end());
-}
-for (let i = 0; i < points.length - 1; i++) {
-  const prev = points[i];
-  const next = points[i + 1];
-  for (let j = 0; j < 100; j++) {
-    parallelStamps.push(between(prev, next));
+// Bulk allocations with periodic resets (Combined Best Practice)
+console.log("\n=== Bulk Allocations with Periodic Resets ===");
+
+const BULK_BATCHES = 10;
+const BULK_BATCH_SIZE = 50;
+const bulkPeriodicStamps = [];
+for (let batch = 0; batch < BULK_BATCHES; batch++) {
+  let prev = start();
+  let next = end();
+  for (let i = 0; i < BULK_BATCH_SIZE; i++) {
+    bulkPeriodicStamps.push(between(prev, next, BULK_BATCH_SIZE, i, 64));
   }
 }
-analyzeStamps(parallelStamps, "Parallel Insertions");
-
-// Collision probability impact
-console.log("\n=== Collision Probability Impact ===");
-const probabilities = [-32, -48, -64, -80, -96, -112, -128];
-const prev = from(1);
-const next = from(2);
-
-for (const prob of probabilities) {
-  const stamps = [];
-  const startTime = performance.now();
-  for (let i = 0; i < 100; i++) {
-    stamps.push(between(prev, next, prob));
-  }
-  const endTime = performance.now();
-  const avgTime = (endTime - startTime) / 100;
-
-  console.log(`\nCollision probability: 2^${prob}`);
-  console.log(`  Average time: ${formatTime(avgTime)}`);
-  analyzeStamps(stamps, `Probability 2^${prob}`);
-}
+analyzeStamps(
+  bulkPeriodicStamps,
+  `Bulk Allocations with Periodic Resets (${BULK_BATCHES} batches of ${BULK_BATCH_SIZE})`,
+);
