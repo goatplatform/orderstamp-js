@@ -385,7 +385,7 @@ Deno.test("between() with different collision probabilities", () => {
   for (const prob of probabilities) {
     const stamps: string[] = [];
     for (let i = 0; i < 10; i++) {
-      const between = orderstamp.between(stamp1, stamp2, prob);
+      const between = orderstamp.between(stamp1, stamp2, 1, 0, prob);
       stamps.push(between);
       // Verify the stamp is between the two values
       assertTrue(
@@ -443,6 +443,27 @@ Deno.test("from() with custom key and collision probability", () => {
   assertTrue(stamp1 < stamp2);
   assertEquals(stamp1.endsWith("abc"), true);
   assertEquals(stamp2.endsWith("xyz"), true);
+});
+
+Deno.test("between() bulk allocation produces ordered stamps", () => {
+  const prev = orderstamp.from(100);
+  const next = orderstamp.from(200);
+  const count = 10;
+  const stamps = [];
+  for (let i = 0; i < count; i++) {
+    stamps.push(orderstamp.between(prev, next, count, i, 64));
+  }
+  // All stamps should be strictly ordered and between prev and next
+  for (let i = 0; i < stamps.length; i++) {
+    assertTrue(prev < stamps[i], `Stamp ${i} should be after prev`);
+    assertTrue(stamps[i] < next, `Stamp ${i} should be before next`);
+    if (i > 0) {
+      assertTrue(
+        stamps[i - 1] < stamps[i],
+        `Stamps out of order at index ${i}`,
+      );
+    }
+  }
 });
 
 // Helper function for tests
