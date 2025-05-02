@@ -277,13 +277,12 @@ export function commonPrefixLen(str1: string, str2: string): number {
 }
 
 /**
- * Generates a random integer between min (inclusive) and max (exclusive).
+ * Generates a cryptographically secure random integer between min (inclusive) and max (exclusive).
+ * Uses crypto.getRandomValues() for secure random number generation.
  *
  * @param min - The minimum value (inclusive)
  * @param max - The maximum value (exclusive)
- * @returns A random integer in the specified range
- *
- * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random#Getting_a_random_integer_between_two_values
+ * @returns A cryptographically secure random integer in the specified range
  */
 export function randomInt(min: number, max: number): number {
   if (min === max) {
@@ -291,7 +290,13 @@ export function randomInt(min: number, max: number): number {
   }
   min = Math.ceil(min);
   max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min;
+  // Create a Uint32Array to hold the random value
+  const randomBuffer = new Uint32Array(1);
+  crypto.getRandomValues(randomBuffer);
+  // Convert the random value to a number between 0 and 1
+  const random = randomBuffer[0] / (0xffffffff + 1);
+  // Scale the random number to the desired range
+  return Math.floor(random * (max - min)) + min;
 }
 
 let gLastTimestamp = 0;
