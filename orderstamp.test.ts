@@ -212,15 +212,7 @@ Deno.test("between() works with hard-coded values having a common prefix", () =>
 Deno.test("end() generates monotonically increasing stamps", () => {
   // Generate multiple stamps with end() in sequence
   const stamp1 = orderstamp.end();
-
-  // Small delay to ensure timestamp changes
-  shortSleep();
-
   const stamp2 = orderstamp.end();
-
-  // Another small delay
-  shortSleep();
-
   const stamp3 = orderstamp.end();
 
   // Verify that each stamp is greater than the previous one
@@ -236,15 +228,7 @@ Deno.test("end() generates monotonically increasing stamps", () => {
 Deno.test("start() generates monotonically decreasing stamps", () => {
   // Generate multiple stamps with start() in sequence
   const stamp1 = orderstamp.start();
-
-  // Small delay to ensure timestamp changes
-  shortSleep();
-
   const stamp2 = orderstamp.start();
-
-  // Another small delay
-  shortSleep();
-
   const stamp3 = orderstamp.start();
 
   // Verify that each stamp is less than the previous one
@@ -281,8 +265,6 @@ Deno.test("Stress test: Sequential insertions", () => {
   // First create a sequence of 1000 stamps using end()
   for (let i = 0; i < 1000; i++) {
     stamps.push(orderstamp.end());
-    // Small delay to ensure different timestamps
-    shortSleep();
   }
 
   // Verify all stamps are in order
@@ -296,8 +278,6 @@ Deno.test("Stress test: Parallel insertion ranges", () => {
   const points: string[] = [];
   for (let i = 0; i < 10; i++) {
     points.push(orderstamp.end());
-    // Small delay to ensure different timestamps
-    shortSleep();
   }
 
   // Insert 100 items between each pair of points
@@ -332,18 +312,15 @@ Deno.test("Stress test: Alternating operations", () => {
 
   // Start with a timestamp-based stamp
   stamps.push(orderstamp.end());
-  shortSleep();
 
   for (let i = 0; i < iterations; i++) {
     if (i % 2 === 0) {
       // Insert at beginning using start()
       const newStamp = orderstamp.start();
-      shortSleep();
       stamps.unshift(newStamp);
     } else {
       // Insert at end using end()
       const newStamp = orderstamp.end();
-      shortSleep();
       stamps.push(newStamp);
     }
   }
@@ -360,21 +337,18 @@ Deno.test("Stress test: Mixed operations", () => {
 
   // Start with a timestamp-based stamp
   stamps.push(orderstamp.end());
-  shortSleep();
 
   for (let i = 0; i < iterations; i++) {
     switch (i % 3) {
       case 0: {
         // Insert at beginning using start()
         const newStamp = orderstamp.start();
-        shortSleep();
         stamps.unshift(newStamp);
         break;
       }
       case 1: {
         // Insert at end using end()
         const newStamp = orderstamp.end();
-        shortSleep();
         stamps.push(newStamp);
         break;
       }
@@ -482,13 +456,4 @@ function assertNotEquals(actual: unknown, expected: unknown) {
     true,
     `Expected values to be different, but both were: ${actual}`,
   );
-}
-
-function shortSleep() {
-  const prev = Date.now();
-  while (true) {
-    if (Date.now() !== prev) {
-      return;
-    }
-  }
 }

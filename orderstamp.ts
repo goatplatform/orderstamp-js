@@ -115,7 +115,7 @@ export const CHAR_CODE_MAX = 126; // '~' character
  * any previous call, ensuring strict ordering.
  */
 export function end(): string {
-  return from(Date.now());
+  return from(newTimestamp());
 }
 
 /**
@@ -127,7 +127,7 @@ export function end(): string {
  * while maintaining a consistent approach with the end() function.
  */
 export function start(): string {
-  return from(-Date.now());
+  return from(-newTimestamp());
 }
 
 /**
@@ -204,34 +204,57 @@ export function between(
     next = prev;
     prev = tmp;
   }
+
   // Find the common prefix between the two stamps
   const prefixLen = commonPrefixLen(prev, next);
+
   // Start with the common prefix
   let result = prev.substring(0, prefixLen);
-  // Track our position in the strings
-  let j = 0;
-  // Track log of collision probability (start at 0 = log(1))
-  let logCollisionProbability = 0;
+
+  // Get the first differing characters
+  const prevCode = prev.charCodeAt(prefixLen) || CHAR_CODE_MIN;
+  const nextCode = next.charCodeAt(prefixLen) || CHAR_CODE_MAX;
+
+  // Calculate target collision probability
   const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
 
-  // Keep adding characters until we achieve the desired collision probability
-  while (logCollisionProbability > targetLogProbability) {
-    // Get the character codes at the current position, defaulting to min/max
-    // if we've reached the end
-    const prevCode = prev.charCodeAt(prefixLen + j) || CHAR_CODE_MIN;
-    const nextCode = next.charCodeAt(prefixLen + j) || CHAR_CODE_MAX;
-    ++j;
+  // If there's room between the characters
+  if (prevCode < nextCode - 1) {
+    // Calculate the middle character code
+    const midCode = prevCode + Math.ceil((nextCode - prevCode) / 2);
+    result += String.fromCharCode(midCode);
 
-    // If there's room between the characters, add a random one
-    if (prevCode < nextCode) {
-      result += String.fromCharCode(randomInt(prevCode, nextCode));
-      // Update log collision probability: add log(1/(number of possible values))
-      logCollisionProbability += Math.log(1 / (nextCode - prevCode));
-    } else {
-      // Otherwise just copy the character from prev
-      result += String.fromCharCode(prevCode);
+    // Calculate remaining entropy needed
+    const initialEntropy = Math.log(1 / (nextCode - prevCode));
+    const remainingEntropy = targetLogProbability - initialEntropy;
+    const charsNeeded = Math.ceil(
+      remainingEntropy / Math.log(1 / (CHAR_CODE_MAX - CHAR_CODE_MIN)),
+    );
+
+    // Add random characters to meet collision probability
+    for (let i = 0; i < Math.max(0, charsNeeded); i++) {
+      result += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
+    }
+  } else {
+    // If there's no room between characters, copy from prev and add random suffix
+    result += String.fromCharCode(prevCode);
+    let j = prefixLen + 1;
+    let logCollisionProbability = 0;
+
+    while (logCollisionProbability > targetLogProbability) {
+      const prevCode = prev.charCodeAt(j) || CHAR_CODE_MIN;
+      const nextCode = next.charCodeAt(j) || CHAR_CODE_MAX;
+      ++j;
+
+      if (prevCode < nextCode) {
+        result += String.fromCharCode(randomInt(prevCode, nextCode));
+        logCollisionProbability += Math.log(1 / (nextCode - prevCode));
+      } else {
+        result += String.fromCharCode(prevCode);
+      }
     }
   }
+
   return result;
 }
 
@@ -269,4 +292,22 @@ export function randomInt(min: number, max: number): number {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min;
+}
+
+let gLastTimestamp = 0;
+/**
+ * Generates a unique timestamp by ensuring it differs from the last generated
+ * timestamp. This function guarantees monotonic timestamps by waiting for the
+ * system clock to advance if the current time matches the last generated
+ * timestamp.
+ *
+ * @returns A unique timestamp in milliseconds since the Unix epoch
+ */
+export function newTimestamp(): number {
+  let now = Date.now();
+  while (now === gLastTimestamp) {
+    now = Date.now();
+  }
+  gLastTimestamp = now;
+  return now;
 }
