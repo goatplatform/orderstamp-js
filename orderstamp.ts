@@ -77,34 +77,32 @@ import * as ELEN from "npm:elen@^1.0.10";
 /**
  * The minimum character code used in order stamps.
  *
- * While we could theoretically use the entire Unicode character space,
- * we limit ourselves to ASCII-compatible characters for better compatibility
- * across different systems, databases, and serialization formats.
+ * We use ASCII 33 ('!') as our minimum character code. This is the first printable
+ * ASCII character after space, making it safe for use in databases, file systems,
+ * and text processing while being visually distinct.
  */
-export const CHAR_CODE_MIN = 1;
+export const CHAR_CODE_MIN = 33; // '!' character
 
 /**
  * The maximum character code used in order stamps.
  *
- * We use a value of 254 (exclusive), which reserves character code 254
- * for the right edge of the ordering space. This ensures we have a clear
- * boundary for the maximum possible value while maintaining compatibility
- * with various text encodings and database systems.
- */
-export const CHAR_CODE_MAX = 254;
-
-/**
- * The length of the random suffix used in order stamps.
+ * We use ASCII 126 ('~') as our maximum character code. This gives us the full range
+ * of printable ASCII characters while avoiding:
+ * - Control characters (0-31)
+ * - Space character (32)
+ * - Delete character (127)
+ * - Extended ASCII/Unicode characters (128+)
  *
- * When generating order stamps, this constant determines the number of random
- * characters appended to ensure uniqueness and proper ordering even when
- * multiple stamps are created between the same values or at the same timestamp.
- *
- * With 254 possible characters per position and 16 positions, this provides
- * approximately 254^16 (≈ 3.7 × 10^38) possible combinations, making the
- * probability of collision extremely low even in high-volume systems.
+ * This range provides 94 distinct characters (126-33+1), which is more than enough
+ * for efficient ordering while ensuring compatibility across:
+ * - All major databases
+ * - File systems
+ * - Text editors
+ * - Network protocols
+ * - Shell commands
+ * - URL encoding
  */
-const RANDOM_SUFFIX_LEN = 16;
+export const CHAR_CODE_MAX = 126; // '~' character
 
 /**
  * Returns a monotonically increasing order stamp at the end of the list which
