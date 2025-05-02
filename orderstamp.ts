@@ -210,8 +210,8 @@ export function between(
   const prefixLen = commonPrefixLen(prev, next);
   let result = prev.substring(0, prefixLen);
   let i = prefixLen;
-  let slots = count + 1;
-  let slot = index + 1;
+  const slots = count + 1;
+  const slt = index + 1;
   while (true) {
     const prevCode = prev.charCodeAt(i) || CHAR_CODE_MIN;
     const nextCode = next.charCodeAt(i) || CHAR_CODE_MAX;
@@ -219,7 +219,7 @@ export function between(
     if (range > slots) {
       // There is enough room to split at this position
       const step = range / slots;
-      const code = Math.floor(prevCode + step * slot);
+      const code = Math.floor(prevCode + step * slt);
       result += String.fromCharCode(code);
       break;
     } else if (range > 1) {
