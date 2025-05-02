@@ -153,22 +153,22 @@ Benchmarks (Deno, 1000 iterations):
 
 | Operation                  | Avg Time | Description                    |
 | -------------------------- | -------- | ------------------------------ |
-| `start()`                  | 998.30µs | Generate start stamp           |
-| `end()`                    | 1.08ms   | Generate end stamp             |
-| `from()`                   | 18.28µs  | Encode number as stamp         |
-| `between()` (close values) | 38.44µs  | Insert between adjacent stamps |
+| `start()`                  | 20.10µs  | Generate start stamp           |
+| `end()`                    | 16.22µs  | Generate end stamp             |
+| `from()`                   | 16.36µs  | Encode number as stamp         |
+| `between()` (close values) | 39.45µs  | Insert between adjacent stamps |
 
 ### Stamp Length (Best Practices)
 
 | Metric       | Bulk (100) | Seq+Reset (1000) | Bulk+Reset (10×50) |
 | ------------ | :--------: | :--------------: | :----------------: |
-| Avg length   |     42     |      21.72       |         11         |
+| Avg length   |     42     |      22.17       |         11         |
 | Median (p50) |     42     |        20        |         11         |
-| p90          |     42     |        37        |         11         |
-| p95          |     42     |        42        |         11         |
-| p99          |     42     |        49        |         11         |
+| p90          |     42     |        38        |         11         |
+| p95          |     42     |        41        |         11         |
+| p99          |     42     |        48        |         11         |
 | Min          |     42     |        11        |         11         |
-| Max          |     42     |        51        |         11         |
+| Max          |     42     |        52        |         11         |
 
 - Bulk allocation keeps stamp lengths fixed.
 - Periodic use of `start()`/`end()` prevents unbounded growth.

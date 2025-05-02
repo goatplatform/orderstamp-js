@@ -210,16 +210,16 @@ export function between(
   const prefixLen = commonPrefixLen(prev, next);
   let result = prev.substring(0, prefixLen);
   let i = prefixLen;
-  const slots = count + 1;
-  const slt = index + 1;
+  const slotCount = count + 1;
+  const slot = index + 1;
   while (true) {
     const prevCode = prev.charCodeAt(i) || CHAR_CODE_MIN;
     const nextCode = next.charCodeAt(i) || CHAR_CODE_MAX;
     const range = nextCode - prevCode;
-    if (range > slots) {
+    if (range > slotCount) {
       // There is enough room to split at this position
-      const step = range / slots;
-      const code = Math.floor(prevCode + step * slt);
+      const step = range / slotCount;
+      const code = Math.floor(prevCode + step * slot);
       result += String.fromCharCode(code);
       break;
     } else if (range > 1) {
@@ -287,18 +287,20 @@ export function randomInt(min: number, max: number): number {
 
 let gLastTimestamp = 0;
 /**
- * Generates a unique timestamp by ensuring it differs from the last generated
- * timestamp. This function guarantees monotonic timestamps by waiting for the
- * system clock to advance if the current time matches the last generated
- * timestamp.
+ * Generates a monotonically increasing timestamp, ensuring no duplicates even
+ * if called multiple times in the same millisecond.
  *
- * @returns A unique timestamp in milliseconds since the Unix epoch
+ * Uses a global counter to increment timestamps when multiple calls occur in
+ * the same millisecond, preventing collisions.
+ *
+ * @returns A unique, monotonically increasing timestamp
  */
 export function newTimestamp(): number {
-  let now = Date.now();
-  while (now === gLastTimestamp) {
-    now = Date.now();
+  const now = Date.now();
+  if (gLastTimestamp >= now) {
+    ++gLastTimestamp;
+  } else {
+    gLastTimestamp = now;
   }
-  gLastTimestamp = now;
-  return now;
+  return gLastTimestamp;
 }
