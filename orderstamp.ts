@@ -180,7 +180,7 @@ export function from(
  * @param prev - The first order stamp
  * @param next - The second order stamp
  * @param count - The number of evenly spaced stamps between prev and next
- * @param index - The index of the stamp to generate between prev and next
+ * @param index - The zero-based index (0 <= index < count) of the stamp to generate between prev and next
  * @param collisionProbability - The desired collision probability as a power of
  *                              2. For example, 64 means a probability of 2^64.
  *                              Defaults to 64 for practical collision
@@ -193,14 +193,14 @@ export function between(
   prev: string,
   next: string,
   count: number = 1,
-  index: number = 1,
+  index: number = 0,
   collisionProbability: number = 64,
 ): string {
   if (prev === next) {
     throw new Error("prev and next must be different");
   }
-  if (count < 1 || index < 1 || index > count) {
-    throw new Error("count must be >= 1 and 1 <= index <= count");
+  if (count < 1 || index < 0 || index >= count) {
+    throw new Error("count must be >= 1 and 0 <= index < count");
   }
   if (prev > next) {
     const tmp = next;
@@ -211,7 +211,7 @@ export function between(
   let result = prev.substring(0, prefixLen);
   let i = prefixLen;
   let slots = count + 1;
-  let slot = index;
+  let slot = index + 1;
   while (true) {
     const prevCode = prev.charCodeAt(i) || CHAR_CODE_MIN;
     const nextCode = next.charCodeAt(i) || CHAR_CODE_MAX;
@@ -224,7 +224,7 @@ export function between(
       break;
     } else if (range > 1) {
       // Not enough room for all slots, but at least one possible strictly between
-      // For count=1, index=1, this is the original behavior
+      // For count=1, index=0, this is the original behavior
       const code = prevCode + 1;
       result += String.fromCharCode(code);
       break;
