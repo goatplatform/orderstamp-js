@@ -8,8 +8,6 @@ ordering suitable for any database supporting string sorting.
 > **⚠️ IMPORTANT: Ensure your database is configured to use _lexicographical_ (string) ordering on the order stamp column.**
 >
 > Orderstamp relies on string sorting for correct ordering. If your database uses numeric or other types of sorting on the order stamp column, the ordering will be incorrect. Always use a string/text/varchar type and verify that queries sort the column lexicographically.
->
-> **Orderstamp uses `crypto.getRandomValues` and requires a JavaScript environment that supports it (such as modern browsers, Deno, Node.js 19+, or Bun).**
 ---
 
 ## Table of Contents
