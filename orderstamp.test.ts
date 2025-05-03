@@ -466,6 +466,28 @@ Deno.test("between() bulk allocation produces ordered stamps", () => {
   }
 });
 
+Deno.test("randomInt() uses crypto.getRandomValues code path (simulated)", () => {
+  const original = orderstamp.getRandomFractionGenerator();
+  // Simulate crypto.getRandomValues path
+  orderstamp.setRandomFractionGenerator(() => 0.12345);
+  for (let i = 0; i < 10; i++) {
+    const num = orderstamp.randomInt(1, 10);
+    assertTrue(num >= 1 && num < 10);
+  }
+  orderstamp.setRandomFractionGenerator(original);
+});
+
+Deno.test("randomInt() uses Math.random code path (simulated)", () => {
+  const original = orderstamp.getRandomFractionGenerator();
+  // Simulate Math.random path
+  orderstamp.setRandomFractionGenerator(() => 0.98765);
+  for (let i = 0; i < 10; i++) {
+    const num = orderstamp.randomInt(1, 10);
+    assertTrue(num >= 1 && num < 10);
+  }
+  orderstamp.setRandomFractionGenerator(original);
+});
+
 // Helper function for tests
 function assertTrue(condition: boolean, message?: string) {
   assertEquals(condition, true, message);

@@ -104,6 +104,48 @@ export const CHAR_CODE_MIN = 33; // '!' character
  */
 export const CHAR_CODE_MAX = 126; // '~' character
 
+// Determine the best available random number generator at module load
+let _randomFraction: () => number = (typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function")
+  ? () => {
+    const randomBuffer = new Uint32Array(1);
+    crypto.getRandomValues(randomBuffer);
+    return randomBuffer[0] / (0xffffffff + 1);
+  }
+  : () => Math.random();
+
+/**
+ * Allows tests or consumers to override the random fraction generator.
+ * Pass a function that returns a float in [0, 1).
+ */
+export function setRandomFractionGenerator(fn: () => number) {
+  _randomFraction = fn;
+}
+
+/**
+ * Returns the current random fraction generator (for restoration in tests).
+ */
+export function getRandomFractionGenerator(): () => number {
+  return _randomFraction;
+}
+
+let _nowFn: () => number = () => Date.now();
+
+/**
+ * Allows tests or consumers to override the clock function used for timestamps.
+ * Pass a function that returns the current time in milliseconds.
+ */
+export function setNowFunction(fn: () => number) {
+  _nowFn = fn;
+}
+
+/**
+ * Returns the current clock function (for restoration in tests).
+ */
+export function getNowFunction(): () => number {
+  return _nowFn;
+}
+
 /**
  * Returns a monotonically increasing order stamp at the end of the list which
  * can be used to append items at the end.
@@ -155,11 +197,17 @@ export function from(
 ): string {
   if (key === undefined) {
     key = "";
-    const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
+    // The probability of a random collision is (1/numChars)^numRandomChars.
+    // We want the probability to be less than 2^-collisionProbability.
+    // So, we accumulate log-probabilities per character until we reach the target.
+    const numChars = CHAR_CODE_MAX - CHAR_CODE_MIN;
+    const perCharLogProbability = Math.log(1 / numChars); // log-probability per random char
+    const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2); // e.g. -64 * ln(2)
     let logCollisionProbability = 0;
     while (logCollisionProbability > targetLogProbability) {
+      // Add a random character to the key
       key += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
-      logCollisionProbability += Math.log(1 / (CHAR_CODE_MAX - CHAR_CODE_MIN));
+      logCollisionProbability += perCharLogProbability;
     }
   }
   return ELEN.encode(value) + key;
@@ -247,11 +295,16 @@ export function between(
     result += extra;
   }
   // Add random characters to meet collision probability
-  const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2);
+  // The probability of a random collision is (1/numChars)^numRandomChars.
+  // We want the probability to be less than 2^-collisionProbability.
+  // So, we accumulate log-probabilities per character until we reach the target.
+  const numChars = CHAR_CODE_MAX - CHAR_CODE_MIN;
+  const perCharLogProbability = Math.log(1 / numChars); // log-probability per random char
+  const targetLogProbability = -Math.abs(collisionProbability) * Math.log(2); // e.g. -64 * ln(2)
   let logCollisionProbability = 0;
   while (logCollisionProbability > targetLogProbability) {
     result += String.fromCharCode(randomInt(CHAR_CODE_MIN, CHAR_CODE_MAX));
-    logCollisionProbability += Math.log(1 / (CHAR_CODE_MAX - CHAR_CODE_MIN));
+    logCollisionProbability += perCharLogProbability;
   }
   return result;
 }
@@ -288,11 +341,7 @@ export function randomInt(min: number, max: number): number {
   }
   min = Math.ceil(min);
   max = Math.floor(max);
-  // Create a Uint32Array to hold the random value
-  const randomBuffer = new Uint32Array(1);
-  crypto.getRandomValues(randomBuffer);
-  // Convert the random value to a number between 0 and 1
-  const random = randomBuffer[0] / (0xffffffff + 1);
+  const random = _randomFraction();
   // Scale the random number to the desired range
   return Math.floor(random * (max - min)) + min;
 }
@@ -308,7 +357,7 @@ let gLastTimestamp = 0;
  * @returns A unique, monotonically increasing timestamp
  */
 export function newTimestamp(): number {
-  const now = Date.now();
+  const now = _nowFn();
   if (gLastTimestamp >= now) {
     ++gLastTimestamp;
   } else {

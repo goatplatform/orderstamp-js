@@ -202,6 +202,39 @@ Run benchmarks:
 deno run benchmarks.ts
 ```
 
+## Customizing the Clock Source
+
+Orderstamp uses `Date.now()` by default to generate timestamps. For testing,
+distributed systems, or advanced use cases, you can override the clock function.
+This allows integration with distributed clocks (such as Google TrueTime or
+other synchronized time sources) in backend environments, ensuring globally
+consistent ordering:
+
+```ts
+import {
+  getNowFunction,
+  newTimestamp,
+  setNowFunction,
+} from "@goatdb/orderstamp";
+
+// Save the original clock function
+const originalNow = getNowFunction();
+
+// Set a custom clock (e.g., from a distributed time API)
+setNowFunction(() => getTrueTimeMillis());
+console.log(newTimestamp()); // Uses your distributed clock
+
+// Restore the original clock
+setNowFunction(originalNow);
+```
+
+- `setNowFunction(fn: () => number)`: Sets the function used to get the current
+  time (in ms).
+- `getNowFunction()`: Returns the current clock function.
+
+This is especially useful for deterministic tests, simulating time in
+benchmarks, or integrating with distributed clocks in backend environments.
+
 ## Dependencies
 
 - [ELEN](https://www.npmjs.com/package/elen): Efficient Lexicographical Encoding
